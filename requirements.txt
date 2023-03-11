@@ -1,5 +1,6 @@
 allennlp
 allennlp-models
+nltk
 google
 bs4
 wikipedia-api
