@@ -3,7 +3,6 @@ from allennlp.predictors.predictor import Predictor
 import allennlp_models.rc
 import textwrap
 import random
-from nltk.tokenize import sent_tokenize, word_tokenize
 from googlesearch import search
 import requests, html5lib
 from bs4 import BeautifulSoup
@@ -17,35 +16,35 @@ wikipedia = wikipediaapi.Wikipedia("en")
 wolframalpha_client = wolframalpha.Client("67PEAP-WG9HRK2966")
 
 def answer(question):
-    sources = []
-    for result in search(question, tld="com", num=4, stop=4, pause=2):
-        information = """\
-                      """
+    information = """\
+                  """
+    source = ""
+    for result in search(question, tld="com", num=1, stop=1, pause=2):        
         html = requests.get(result)
         soup = BeautifulSoup(html.text, "html5lib")
         for txt in soup.find_all("p"):
-            information += "\n"+str(txt.get_text())
-        sources.append([information.strip(), result])
-    try:
-        source = random.choice(sources)
-        passage = source[0]
-        ans = ""
+            information += "\n"+str(txt.get_text().strip())
+        source += result.strip()
+    information = information.strip()
+    source = source.strip()
+    try:        
         prediction = predictor.predict(
-                        passage=textwrap.dedent(passage),
+                        passage=textwrap.dedent(information),
                         question=question
                      )
-        sentences = sent_tokenize(passage)
-        for sent in sentences:
-            if prediction["best_span_str"].strip() in sent:
-                ans_toks = word_tokenize(sent)
-                for tok in ans_toks:
-                    ans += tok+" "
-                candidate_answer = ans.strip() + f".Source: {source[1].strip()}."
-        if not candidate_answer:
-            candidate_answer = prediction["best_span_str"].strip() + f".Source: {source[1].strip()}."
-            return candidate_answer
+        paragraphs = information.split("\n")
+        for paragraph in paragraphs:
+            if prediction["best_span_str"] in paragraph:
+                tokens = paragraph.split()                
+                ans = " ".join(tokens) + f" Source: {source}."               
+        if not ans.strip():
+            ans = prediction["best_span_str"] + f". Source: {source}."
+            if not ans.strip():
+                return ""
+            else:
+                return ans
         else:
-            return candidate_answer
+            return ans
     except:
         return ""
   
@@ -59,77 +58,86 @@ def wolfram(query):
     return result
 
 print("Question Answering Transformer (QAT)")
-print("Input a user_input.")
 print("Ask a question or type \"/help\" for usage.")
 cache = {}
 while True:
     start = default_timer()
     user_input = input("User: ")
-    if not user_input:
-        print("Please input a question or type \"/help\" for usage.") 
-    elif user_input.strip().lower().startswith("/feedback"):
-        if not bool(cache):
-            print("There is currently nothing saved in cache.")
-        else:
-            correction = user_input.replace("/feedback", "", 1).strip()
-            if not correction:
-                print("Please give a correction that you want to make.")
-            else:
-                print("The previous answer will be replaced with this correction.")
-                cache[list(cache.keys())[-1]] = [correction, default_timer()]
+    if not user_input.strip():
+        print("QAT: Please input a question or a command. Type \"/help\" for usage.")
     elif user_input.strip().lower().startswith("/help"):
         print(textwrap.dedent("""\
                               User Guide:
                               - Input a question and get the answer for it.
-                              - /feedback [correction]: Make a correction to the previous answer if it is incorrect.
-                              - /help: Get the user guide for QAT.
-                              - /wiki [query]: (Additional Feature) Search the result for a query with Wikipedia.
-                              - /wolfram [query]: (Additional Feature) Search the result for a query with Wolfram|Alpha.
-                              - /exit: Exit the application."""))
+                              - Commands:
+                                  + /help: Get the user guide for QAT.                                 
+                                  + /feedback [correction]: Make a correction to the answer for the previous question if it is incorrect.
+                                  + /clearcache: Clear all the saved data in cache memory (answers for user's questions)
+                                  + /wiki [query]: (Additional Feature) Search the result for a query with Wikipedia.
+                                  + /wolfram [query]: (Additional Feature) Search the result for a query with Wolfram|Alpha.
+                                  + /info: Get information about this application. 
+                                  + /exit: Exit the application.""")                              
+    elif user_input.strip().lower().startswith("/feedback"):
+        if not bool(cache):
+            print("QAT: There is currently nothing saved in cache memory.")
+        else:
+            correction = user_input.replace("/feedback", "", 1).strip()
+            if not correction.strip():
+                print("QAT: Please give a correction that you want to make.")
+            else:
+                cache[list(cache.keys())[-1]] = [correction, default_timer()]
+                print("QAT: The answer for the previous question has been corrected.")
+    elif user_input.strip().lower().startswith("/clearcache"):
+        cache.clear()
+        print("All the saved data in cache memory has been deleted.")
     elif user_input.strip().lower().startswith("/wiki"):
         query = user_input.replace("/wiki", "", 1).strip()
-        if not query:
-            print("Please input a query.")
+        if not query.strip():
+            print("QAT: Please input a query.")
         else:
             result = wiki(query)
-            if not result:
-                print("There are no results available.")
+            if not result.strip():
+                print("QAT: There are no results available.")
             else:
                 print(f"QAT: {result}")
     elif user_input.strip().lower().startswith("/wolfram"):
         query = user_input.replace("/wolfram", "", 1).strip()
-        if not query:
-            print("Please input a query.")
+        if not query.strip():
+            print("QAT: Please input a query.")
         else:
             result = wolfram(query)
-            if not result:
-                print("There are no results available.")
+            if not result.strip():
+                print("QAT: There are no results available.")
             else:
                 print("QAT:")
                 for pod in result.pods:
                     for subpod in pod.subpods:
                         print(subpod.plaintext)
+    elif user_input.strip().lower().startswith("/info"):
+        print(textwrap.dedent("""\
+                              Question Answering Transformer (QAT)
+                              Developer: Nguyễn Hải Cường
+                              Language: English                              
+                              Model: Transformer-QA
+                              Powered by Python, AllenNLP and Google Search
+                              This application is still in research and development."""))                                                              
     elif user_input.strip().lower().startswith("/exit"):
-        print("Exitting...")
+        print("Exitting QAT...")
         sys.exit()
     else:
-        question = user_input
-        if not question:
-            print("Please input a question.")
-        else:
-            print("Thinking....")
-            if question.strip().lower() in cache.keys():
-                if (default_timer() - cache[question.strip().lower()][1]) <= 3600:
-                    ans = cache[question.strip().lower()][0]
-                    cache[question.strip().lower()] = cache.pop(question.strip().lower())
-                else:
-                    ans = answer(question)
-                    cache[question.strip().lower()] = [ans, default_timer()]
+        question = user_input                
+        print("QAT: Searching for answer...")
+        if question.strip().lower() in cache.keys():
+            if (default_timer() - cache[question.strip().lower()][1]) <= 3600:
+                ans = cache[question.strip().lower()][0]
+                cache[question.strip().lower()] = cache.pop(question.strip().lower())
             else:
                 ans = answer(question)
                 cache[question.strip().lower()] = [ans, default_timer()]
-            if not ans:
-                print("There are no answers available.")
-            else:
-                print(f"QAT: {ans}")
-
+        else:
+            ans = answer(question)
+            cache[question.strip().lower()] = [ans, default_timer()]
+        if not ans:
+            print("QAT: There are no answers available.")
+        else:
+            print(f"QAT: {ans}")
