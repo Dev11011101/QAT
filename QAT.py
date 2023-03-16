@@ -76,7 +76,7 @@ while True:
                                   + /wiki [query]: (Additional Feature) Search the result for a query with Wikipedia.
                                   + /wolfram [query]: (Additional Feature) Search the result for a query with Wolfram|Alpha.
                                   + /info: Get information about this application. 
-                                  + /exit: Exit the application.                                 
+                                  + /exit: Exit the application."""))                                 
     elif user_input.strip().lower().startswith("/feedback"):
         if not bool(cache):
             print("QAT: There is currently nothing saved in cache memory.")
