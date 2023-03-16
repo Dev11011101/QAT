@@ -59,7 +59,6 @@ def wolfram(query):
 
 print("Question Answering Transformer (QAT)")
 print("Ask a question or type \"/help\" for usage.")
-print("Note: This application is not a chatbot and it can only answer academic questions about science or other fields of knowledge. Please don't try to have a conversation with it!")
 cache = {}
 while True:
     start = default_timer()
@@ -77,8 +76,7 @@ while True:
                                   + /wiki [query]: (Additional Feature) Search the result for a query with Wikipedia.
                                   + /wolfram [query]: (Additional Feature) Search the result for a query with Wolfram|Alpha.
                                   + /info: Get information about this application. 
-                                  + /exit: Exit the application.
-                                  - Note: This application is not a chatbot and it can only answer academic questions about science or other fields of knowledge. Please don't try to have a conversation with it!"""))
+                                  + /exit: Exit the application.                                 
     elif user_input.strip().lower().startswith("/feedback"):
         if not bool(cache):
             print("QAT: There is currently nothing saved in cache memory.")
