@@ -141,3 +141,5 @@ while True:
             print("QAT: There are no answers available.")
         else:
             print(f"QAT: {ans}")
+
+            
